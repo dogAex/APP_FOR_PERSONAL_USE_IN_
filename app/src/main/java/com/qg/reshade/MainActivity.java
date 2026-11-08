@@ -1,4 +1,4 @@
-﻿package com.qg.reshade;
+package com.qg.reshade;
 import android.app.Activity;
 import android.os.Bundle;
 public class MainActivity extends Activity {
