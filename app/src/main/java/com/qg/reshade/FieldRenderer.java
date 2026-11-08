@@ -1,4 +1,4 @@
-﻿package com.qg.reshade;
+package com.qg.reshade;
 
 import android.content.Context;
 import android.opengl.GLES30;
