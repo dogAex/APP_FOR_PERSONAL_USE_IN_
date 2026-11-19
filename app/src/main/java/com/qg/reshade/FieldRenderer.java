@@ -47,6 +47,7 @@ public class FieldRenderer extends GLSurfaceView implements GLSurfaceView.Render
         "uniform float uIntensity;\n" +
         "uniform float uBias;\n" +
         "\n" +
+        // 【核心保留】原本的相空间波函数，用于提取屏幕伪深度
         "float baseColorLum(vec2 uv) {\n" +
         "  vec2 center = uv - vec2(0.5);\n" +
         "  float dist = length(center);\n" +
@@ -69,6 +70,7 @@ public class FieldRenderer extends GLSurfaceView implements GLSurfaceView.Render
         "\n" +
         "float pseudoDepth(vec2 uv) { return 1.0 - baseColorLum(uv); }\n" +
         "\n" +
+        // 【幺正演化】这里通过叉积（cross）产生 3D 法线
         "vec3 pseudoNormal(vec2 uv) {\n" +
         "  vec2 texel = 1.0 / u_resolution;\n" +
         "  float dL = pseudoDepth(uv - vec2(texel.x, 0.0));\n" +
@@ -109,6 +111,10 @@ public class FieldRenderer extends GLSurfaceView implements GLSurfaceView.Render
         "  vec2 uv = gl_FragCoord.xy / u_resolution;\n" +
         "  vec2 center = uv - vec2(0.5);\n" +
         "  float dist = length(center);\n" +
+        "\n" +
+        // =========================================================
+        // 【第一部分：原汁原味的极致光效与 9千万亿 能量注入】
+        // =========================================================
         "  float d = 0.5 + 0.1 * sin(u_sync_time);\n" +
         "  float phase_diff = 2.0 * 3.1415926 * (d * sin(dist * 3.1415926)) / 0.7606;\n" +
         "  vec3 diff_color = vec3(abs(cos(phase_diff * 1.8)), abs(cos(phase_diff * 2.0)), abs(cos(phase_diff * 2.2)));\n" +
@@ -126,11 +132,27 @@ public class FieldRenderer extends GLSurfaceView implements GLSurfaceView.Render
         "  hdrColor += diff_color * 2e5;\n" +
         "  hdrColor += algebra_rgb;\n" +
         "  hdrColor += vec3(super_pos_history * 2e5, 0.0, super_pos_current * 2e5);\n" +
+        
+        // 【9千万亿量纲爆发点】（根据嘉嘉要求，直接在这里乘上 9e15）
+        "  hdrColor *= 9e15;\n" + 
+        
         "  vec3 finalColor = hdrColor / (hdrColor + vec3(1.0));\n" +
         "  finalColor = pow(finalColor, vec3(1.0 / 2.2));\n" +
+        "\n" +
+        // =========================================================
+        // 【第二部分：伪深度 GTAO 阴影（叉积 + 正则统一插值）】
+        // =========================================================
         "  vec3 normal = pseudoNormal(uv);\n" +
         "  float ao = computeGTAO(uv, normal);\n" +
-        "  fragColor = vec4(finalColor * ao, 0.65);\n" +
+        
+        // mix 是线性插值。阴影最深保留 30% 原光效，最亮保留 100%。将9千万亿的能量强制归一化。
+        "  vec3 fusedColor = finalColor * mix(0.3, 1.0, ao);\n" +
+        
+        // 阴影细节微调，提亮一点暗部，防止死黑
+        "  fusedColor += finalColor * 0.1 * ao;\n" +
+        
+        // 输出最终结果，保持 0.65 的透明度叠加
+        "  fragColor = vec4(fusedColor, 0.65);\n" +
         "}";
 
     @Override
